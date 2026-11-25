@@ -20,6 +20,10 @@ export function ScoreTab({ data }: { data: EventWorkspaceData }) {
   const step = (tid: string, field: "bonus" | "penalty", d: number) =>
     setScores((st) => ({ ...st, [tid]: { ...st[tid], [field]: Math.max(0, (st[tid][field] || 0) + d) } }));
 
+  if (teams.length === 0) {
+    return <div className="rounded-xl p-6 text-sm text-muted" style={{ border: "1px dashed var(--border-2)" }}>No teams yet — add competing teams to start scoring.</div>;
+  }
+
   const ranked = [...teams].map((t) => ({ ...t, total: total(scores[t.id]) })).sort((a, b) => b.total - a.total);
   const leader = ranked[0];
   const lead = ranked[0].total - (ranked[1]?.total ?? 0);

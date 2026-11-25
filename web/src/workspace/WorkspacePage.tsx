@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Icon, type IconName } from "@/lib/icons";
 import { StatusPill } from "@/components/ui";
 import { useToast } from "@/lib/toast";
-import { getWorkspace, isFeatureEvent } from "@/lib/api";
+import { getWorkspace } from "@/lib/api";
 import { fmtRange } from "@/lib/format";
 import { PARENT_FOLDER } from "@/domain/seed";
 import type { EventWorkspaceData } from "@/domain/types";
@@ -73,7 +73,7 @@ export function WorkspacePage() {
   }
 
   const ev = data.event;
-  const feature = isFeatureEvent(ev.id);
+  const feature = !!ev.codename;
   const goTab = (t: string) => navigate(`/events/${eventId}/${t}`);
 
   return (
@@ -129,7 +129,7 @@ export function WorkspacePage() {
         <div className="px-5 pt-4">
           <div className="rounded-lg p-3 text-xs flex items-center gap-2.5 max-w-3xl" style={{ background: "var(--info-sft)", color: "var(--info)" }}>
             <Icon name="alert" className="w-4 h-4 shrink-0" />
-            Prototype: tab content below shows the fully worked “{ev.codename}” dataset. Open the headline Grab event from the dashboard for the matched example.
+            This event has no programme data yet — create teams, stations and a run-of-show to populate these tabs.
           </div>
         </div>
       )}

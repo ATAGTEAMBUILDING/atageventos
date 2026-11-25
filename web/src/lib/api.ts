@@ -1,27 +1,28 @@
 /**
- * Mock API layer — the single seam between the UI and data.
+ * API client — talks to the EventOps backend (api/).
  *
- * Every component loads data through these functions, never through `fetch`
- * directly. When the real back-end (api/) is ready, swap these bodies for HTTP
- * calls and the UI is unchanged. Signatures intentionally look like a network
- * client (async, by id).
+ * Same signatures the UI already used when this was a mock, so no component
+ * changed. Base URL from VITE_API_URL, default http://localhost:8080.
  */
-import type { EventSummary, EventWorkspaceData, EventStatus } from "@/domain/types";
-import { DASHBOARD_EVENTS, WORKSPACE_SEED } from "@/domain/seed";
+import type { EventSummary, EventWorkspaceData } from "@/domain/types";
 
-const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8080";
 
-// In-memory store (resets on reload — stands in for the database).
-let events: EventSummary[] = [...DASHBOARD_EVENTS];
+async function getJSON<T>(path: string): Promise<T> {
+  const res = await fetch(`${BASE}${path}`);
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText} for ${path}`);
+  return res.json() as Promise<T>;
+}
 
 export async function listEvents(): Promise<EventSummary[]> {
-  await delay(120);
-  return [...events];
+  return getJSON<EventSummary[]>("/api/events");
 }
 
 export async function getEvent(id: string): Promise<EventSummary | undefined> {
-  await delay(60);
-  return events.find((e) => e.id === id);
+  const res = await fetch(`${BASE}/api/events/${id}`);
+  if (res.status === 404) return undefined;
+  if (!res.ok) throw new Error(`${res.status} for /api/events/${id}`);
+  return res.json();
 }
 
 export interface CreateEventInput {
@@ -36,50 +37,15 @@ export interface CreateEventInput {
 }
 
 export async function createEvent(input: CreateEventInput): Promise<EventSummary> {
-  await delay(200);
-  const ev: EventSummary = {
-    id: "e" + Math.random().toString(36).slice(2, 6),
-    name: input.name || "Untitled event",
-    client: input.client || "—",
-    venue: input.venue || "TBD",
-    city: input.city || "—",
-    start: input.date,
-    end: input.date,
-    status: "Draft" as EventStatus,
-    pax: input.pax || 0,
-    teams: input.teams || 0,
-    readiness: 12,
-  };
-  events = [ev, ...events];
-  return ev;
+  const res = await fetch(`${BASE}/api/events`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(`${res.status} creating event`);
+  return res.json();
 }
 
-/**
- * Loads the full workspace payload for an event. In this prototype every event
- * resolves to the worked "Island Escape Expedition" dataset, with the header
- * overridden by the selected event's summary so navigation stays coherent.
- */
 export async function getWorkspace(id: string): Promise<EventWorkspaceData> {
-  await delay(160);
-  const summary = events.find((e) => e.id === id);
-  if (!summary || id === "e1") return WORKSPACE_SEED;
-  return {
-    ...WORKSPACE_SEED,
-    event: {
-      ...WORKSPACE_SEED.event,
-      id: summary.id,
-      name: summary.name,
-      client: summary.client,
-      venue: summary.venue,
-      city: summary.city,
-      start: summary.start,
-      end: summary.end,
-      status: summary.status,
-      pax: summary.pax,
-      teams: summary.teams,
-      readiness: summary.readiness,
-    },
-  };
+  return getJSON<EventWorkspaceData>(`/api/events/${id}/workspace`);
 }
-
-export const isFeatureEvent = (id: string) => id === "e1";

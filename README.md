@@ -10,37 +10,63 @@ This repository implements the design in **EventOps OS — Technical Design**
 
 ```
 eventops-os/
-  web/   React + TypeScript + Tailwind (Vite) front end — runnable now on mock data
-  api/   Node + TypeScript (Express) back-end skeleton + Prisma schema (Postgres)
+  web/     React + TypeScript + Tailwind (Vite) front end
+  api/     Node + TypeScript (Express) back end + Prisma schema (Postgres)
+  spike/   Phase 0 Google Workspace generation spike (throwaway, run against real Drive)
 ```
 
-The front end runs today against an in-memory **mock API** (`web/src/lib/api.ts`). That module is the
-single seam where the real HTTP client swaps in once the `api/` service is built — no UI component calls
-the network directly.
+The front end talks to the back end through one module, `web/src/lib/api.ts` (HTTP client). No UI
+component calls the network directly.
 
 ## Status
 
 | Area | State |
 | --- | --- |
-| Web — app shell, dashboard, create wizard, event workspace (9 tabs) | Built, runs on mock data |
-| Domain model (TypeScript types) | Defined in `web/src/domain` |
-| API — routes, Prisma schema, Google service stubs | Scaffolded; not yet implemented |
-| Google Workspace generation + ownership model | **Blocked on the Phase 0 spike** (see design doc) |
+| Web — app shell, dashboard, create wizard, event workspace (9 tabs) | Built, full-stack |
+| API — events / scores / rotation / deliverables / crew routes | Built, serving from Postgres |
+| Database — Prisma schema + migrations + seed (Island Escape dataset) | Built |
+| Google Workspace generation (Drive / Sheets / Slides) | Code written, **spike-verified**; needs Shared Drive + service account + template ids |
 | Auth (Google Workspace OAuth), offline PWA | Not started |
 
-## Run the web app
+## Run full-stack locally
+
+Needs a PostgreSQL 16 database. Point `api/.env` at it (copy `api/.env.example`):
 
 ```bash
-cd web
-npm install
-npm run dev        # http://localhost:5173
-npm run build      # type-check + production build
+# api/.env
+DATABASE_URL="postgresql://USER@localhost:5432/eventops?schema=public"
+PORT=8080
+WEB_ORIGIN="http://localhost:5173"
 ```
 
-## Open decisions (from the design doc, before backend work)
+Then:
 
-1. Is the master Drive on **Google Workspace** (needed for Shared Drives)?
-2. File ownership: Shared Drive (recommended) vs. per-user.
-3. Generation mechanism: Google APIs vs. Apps Script fallback for Slides.
+```bash
+# back end
+cd api
+npm install
+npx prisma migrate dev     # create schema
+npm run db:seed            # load the Island Escape dataset + dashboard events
+npm run dev                # http://localhost:8080
 
-These gate `api/src/services/google`, not the front end.
+# front end (second terminal)
+cd web
+npm install
+npm run dev                # http://localhost:5173  (set VITE_API_URL if the API isn't on :8080)
+```
+
+`npm run build` in either package type-checks and builds for production.
+
+## Phase 0 spike result (25 Nov 2026)
+
+Verified against the real template Drive: Drive provisioning, Sheets write, and Slides duplicate+merge
+all work with plain Google REST APIs. Deliverables are **Sheets + Slides** (no Docs); templates have
+**no named ranges**; files are currently **personally owned** — create a Shared Drive and use a service
+account. Details in the design doc. To run the spike yourself: `cd spike && npm install && node run.mjs`
+(see `spike/README.md`).
+
+## Before production Google generation
+
+1. Create a Shared Drive; move `EVENT OPS OS Events` into it (team-owned files).
+2. Create a service account, add it to the Shared Drive, base64 its key into `GOOGLE_SERVICE_ACCOUNT_KEY`.
+3. Set the template file ids + events folder in `api/.env` (see `api/.env.example`).

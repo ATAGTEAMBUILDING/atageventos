@@ -91,6 +91,10 @@ model Event {
   timeWindow    String?
   timezone      String      @default("Asia/Kuala_Lumpur")
   status        EventStatus @default(Draft)
+  pax           Int         @default(0)
+  teamsPlanned  Int         @default(0)
+  readiness     Int         @default(0)
+  budgetAllocUsd Int        @default(600)
   driveFolderId String?
   leadProducer   User?   @relation("EventLeadProducer", fields: [leadProducerId], references: [id])
   leadProducerId String?
@@ -227,6 +231,7 @@ model FlowBlock {
   title       String
   description String?
   order       Int
+  gear        String[]
   completed   Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

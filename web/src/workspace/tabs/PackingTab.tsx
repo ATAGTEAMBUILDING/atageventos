@@ -10,7 +10,7 @@ export function PackingTab({ data }: { data: EventWorkspaceData }) {
 
   const all = groups.flatMap((g) => g.items);
   const done = all.filter((i) => i.done).length;
-  const pct = Math.round((done / all.length) * 100);
+  const pct = all.length ? Math.round((done / all.length) * 100) : 0;
 
   return (
     <div className="flex flex-col gap-5">
