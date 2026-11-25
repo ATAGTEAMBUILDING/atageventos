@@ -1,0 +1,351 @@
+// EventOps OS — database schema (PostgreSQL)
+// Mirrors the data model in the Technical Design doc:
+// https://claude.ai/artifact/8W4VJdcjN7Tu5Uw6CsMuQs
+// Status enums use Prisma enums; soft-delete via deletedAt on every table.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EventStatus {
+  Draft
+  Planning
+  Ready
+  Live
+  Complete
+}
+
+enum CrewType {
+  FullTime
+  PartTime
+}
+
+enum CrewStatus {
+  Confirmed
+  Pending
+  Unfilled
+}
+
+enum ProcurementStatus {
+  ToOrder
+  Ordered
+  Received
+}
+
+enum Urgency {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum DeliverableKind {
+  Docs
+  Sheets
+  Slides
+  Calendar
+}
+
+enum GenerationState {
+  Idle
+  Generating
+  Done
+  Failed
+}
+
+enum UserRole {
+  Admin
+  Producer
+  Facilitator
+  Viewer
+}
+
+model User {
+  id               String   @id @default(uuid())
+  name             String
+  email            String   @unique
+  role             UserRole @default(Producer)
+  facilitatorAppId String?  @unique
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  deletedAt        DateTime?
+
+  producedEvents Event[] @relation("EventLeadProducer")
+  createdEvents  Event[] @relation("EventCreatedBy")
+}
+
+model Event {
+  id            String      @id @default(uuid())
+  name          String
+  codename      String?
+  client        String
+  venue         String
+  city          String
+  zone          String?
+  date          DateTime    @db.Date
+  endDate       DateTime?   @db.Date
+  timeWindow    String?
+  timezone      String      @default("Asia/Kuala_Lumpur")
+  status        EventStatus @default(Draft)
+  driveFolderId String?
+  leadProducer   User?   @relation("EventLeadProducer", fields: [leadProducerId], references: [id])
+  leadProducerId String?
+  createdBy      User?   @relation("EventCreatedBy", fields: [createdById], references: [id])
+  createdById    String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  deletedAt     DateTime?
+
+  teams           Team[]
+  participants    Participant[]
+  stations        Station[]
+  challenges      Challenge[]
+  crewAssignments CrewAssignment[]
+  flowBlocks      FlowBlock[]
+  scores          Score[]
+  rotationPlan    RotationPlan?
+  procurement     ProcurementItem[]
+  packing         PackingItem[]
+  deliverables    Deliverable[]
+  readinessItems  ReadinessItem[]
+}
+
+model Team {
+  id           String  @id @default(uuid())
+  event        Event   @relation(fields: [eventId], references: [id])
+  eventId      String
+  name         String
+  color        String
+  order        Int
+  bonusPoints  Int     @default(0)
+  penaltyPoints Int    @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  participants  Participant[]
+  scores        Score[]
+  rotationCells RotationCell[]
+}
+
+model Participant {
+  id        String  @id @default(uuid())
+  event     Event   @relation(fields: [eventId], references: [id])
+  eventId   String
+  team      Team?   @relation(fields: [teamId], references: [id])
+  teamId    String?
+  name      String
+  org       String?
+  email     String?
+  dietary   String?
+  status    String  @default("Registered")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+}
+
+model Challenge {
+  id        String  @id @default(uuid())
+  event     Event   @relation(fields: [eventId], references: [id])
+  eventId   String
+  key       String
+  label     String
+  maxPoints Int
+  order     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  stations Station[]
+  scores   Score[]
+
+  @@unique([eventId, key])
+}
+
+model Station {
+  id          String     @id @default(uuid())
+  event       Event      @relation(fields: [eventId], references: [id])
+  eventId     String
+  name        String
+  challenge   Challenge? @relation(fields: [challengeId], references: [id])
+  challengeId String?
+  room        String?
+  capacity    Int?
+  durationMin Int?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
+
+  crewAssignments CrewAssignment[]
+  rotationCells   RotationCell[]
+}
+
+model CrewMember {
+  id               String     @id @default(uuid())
+  facilitatorAppId String?    @unique
+  name             String
+  email            String?
+  type             CrewType
+  defaultRate      String?
+  rating           Float?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  deletedAt        DateTime?
+
+  assignments CrewAssignment[]
+}
+
+model CrewAssignment {
+  id           String     @id @default(uuid())
+  event        Event      @relation(fields: [eventId], references: [id])
+  eventId      String
+  crewMember   CrewMember? @relation(fields: [crewMemberId], references: [id])
+  crewMemberId String?
+  roleTitle    String
+  type         CrewType
+  station      Station?   @relation(fields: [stationId], references: [id])
+  stationId    String?
+  status       CrewStatus @default(Pending)
+  rate         String?
+  source       String     @default("app") // "app" | "manual"
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
+}
+
+model FlowBlock {
+  id          String   @id @default(uuid())
+  event       Event    @relation(fields: [eventId], references: [id])
+  eventId     String
+  start       String
+  end         String
+  phase       String
+  title       String
+  description String?
+  order       Int
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  duties FlowDuty[]
+}
+
+model FlowDuty {
+  id            String    @id @default(uuid())
+  flowBlock     FlowBlock @relation(fields: [flowBlockId], references: [id])
+  flowBlockId   String
+  kind          String // "producer" | "facilitator"
+  roleTitle     String
+  assigneeRef   String?
+  stationsLabel String?
+  crew          String[]
+  duties        String[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+}
+
+model Score {
+  id          String   @id @default(uuid())
+  event       Event    @relation(fields: [eventId], references: [id])
+  eventId     String
+  team        Team     @relation(fields: [teamId], references: [id])
+  teamId      String
+  challenge   Challenge @relation(fields: [challengeId], references: [id])
+  challengeId String
+  points      Int      @default(0)
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([teamId, challengeId])
+}
+
+model RotationPlan {
+  id           String   @id @default(uuid())
+  event        Event    @relation(fields: [eventId], references: [id])
+  eventId      String   @unique
+  rounds       Int
+  roundMinutes Int
+  includesRest Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  cells RotationCell[]
+}
+
+model RotationCell {
+  id             String       @id @default(uuid())
+  rotationPlan   RotationPlan @relation(fields: [rotationPlanId], references: [id])
+  rotationPlanId String
+  team           Team         @relation(fields: [teamId], references: [id])
+  teamId         String
+  round          Int
+  station        Station?     @relation(fields: [stationId], references: [id])
+  stationId      String? // null = Base Camp / rest
+
+  @@unique([rotationPlanId, teamId, round])
+}
+
+model ProcurementItem {
+  id       String            @id @default(uuid())
+  event    Event             @relation(fields: [eventId], references: [id])
+  eventId  String
+  item     String
+  category String
+  qty      Int               @default(1)
+  vendor   String?
+  urgency  Urgency           @default(MEDIUM)
+  cost     Decimal           @db.Decimal(10, 2)
+  currency String            @default("USD")
+  status   ProcurementStatus @default(ToOrder)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  deletedAt DateTime?
+}
+
+model PackingItem {
+  id        String   @id @default(uuid())
+  event     Event    @relation(fields: [eventId], references: [id])
+  eventId   String
+  category  String
+  name      String
+  qty       Int      @default(1)
+  done      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+}
+
+model Deliverable {
+  id          String          @id @default(uuid())
+  event       Event           @relation(fields: [eventId], references: [id])
+  eventId     String
+  kind        DeliverableKind
+  templateId  String?
+  driveFileId String?
+  url         String?
+  state       GenerationState @default(Idle)
+  generatedAt DateTime?
+  generatedById String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model ReadinessItem {
+  id        String   @id @default(uuid())
+  event     Event    @relation(fields: [eventId], references: [id])
+  eventId   String
+  key       String
+  label     String
+  group     String
+  weight    Int      @default(1)
+  done      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
