@@ -1,0 +1,13 @@
+{
+  "name": "eventops-phase0-spike",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Phase 0 de-risking spike: provision a per-event folder and generate Doc/Sheet/Slides against the real EVENT OPS OS Events template, under the chosen ownership model.",
+  "scripts": {
+    "spike": "node run.mjs"
+  },
+  "dependencies": {
+    "googleapis": "144.0.0"
+  }
+}
