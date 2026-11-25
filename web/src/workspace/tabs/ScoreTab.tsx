@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, Panel, Btn, LinkBtn, inputStyle } from "@/components/ui";
 import { Icon } from "@/lib/icons";
 import { useToast } from "@/lib/toast";
+import { putScore, putAdjustments } from "@/lib/api";
 import { DRIVE_URL } from "@/domain/seed";
 import type { EventWorkspaceData, TeamScore } from "@/domain/types";
 
@@ -10,15 +11,21 @@ const medal = ["var(--gold)", "var(--faint)", "#B06A2E"];
 export function ScoreTab({ data }: { data: EventWorkspaceData }) {
   const toast = useToast();
   const { teams, challenges } = data;
+  const eventId = data.event.id;
   const [scores, setScores] = useState<Record<string, TeamScore>>(() => Object.fromEntries(data.scores.map((s) => [s.teamId, { ...s, points: { ...s.points } }])));
+  const persist = (p: Promise<unknown>) => p.catch(() => toast("Couldn't save — check connection", "crit"));
 
   const total = (s: TeamScore) => challenges.reduce((t, c) => t + (Number(s.points[c.key]) || 0), 0) + (s.bonus || 0) - (s.penalty || 0);
   const setVal = (tid: string, key: string, v: string, max: number) => {
     const n = Math.max(0, Math.min(max, Number(v) || 0));
     setScores((st) => ({ ...st, [tid]: { ...st[tid], points: { ...st[tid].points, [key]: n } } }));
+    persist(putScore(eventId, tid, key, n));
   };
-  const step = (tid: string, field: "bonus" | "penalty", d: number) =>
-    setScores((st) => ({ ...st, [tid]: { ...st[tid], [field]: Math.max(0, (st[tid][field] || 0) + d) } }));
+  const step = (tid: string, field: "bonus" | "penalty", d: number) => {
+    const next = { ...scores[tid], [field]: Math.max(0, (scores[tid][field] || 0) + d) };
+    setScores((st) => ({ ...st, [tid]: next }));
+    persist(putAdjustments(eventId, tid, next.bonus, next.penalty));
+  };
 
   if (teams.length === 0) {
     return <div className="rounded-xl p-6 text-sm text-muted" style={{ border: "1px dashed var(--border-2)" }}>No teams yet — add competing teams to start scoring.</div>;

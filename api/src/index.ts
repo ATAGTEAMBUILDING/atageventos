@@ -6,6 +6,7 @@ import { scoresRouter } from "./routes/scores.js";
 import { deliverablesRouter } from "./routes/deliverables.js";
 import { crewRouter } from "./routes/crew.js";
 import { rotationRouter } from "./routes/rotation.js";
+import { resourcesRouter } from "./routes/resources.js";
 
 const app = express();
 app.use(cors({ origin: process.env.WEB_ORIGIN ?? "http://localhost:5173" }));
@@ -19,6 +20,7 @@ app.use("/api/events", scoresRouter);
 app.use("/api/events", deliverablesRouter);
 app.use("/api/events", rotationRouter);
 app.use("/api/crew", crewRouter);
+app.use("/api", resourcesRouter);
 
 const port = Number(process.env.PORT ?? 8080);
 app.listen(port, () => console.log(`eventops-api listening on :${port}`));

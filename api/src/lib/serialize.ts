@@ -55,14 +55,14 @@ export type FullEvent = Event & {
 export function toWorkspace(e: FullEvent) {
   const keyById = new Map(e.challenges.map((c) => [c.id, c.key]));
 
-  const packingGroups: { category: string; items: { name: string; done: boolean }[] }[] = [];
+  const packingGroups: { category: string; items: { id: string; name: string; done: boolean }[] }[] = [];
   for (const p of e.packing) {
     let g = packingGroups.find((x) => x.category === p.category);
     if (!g) {
       g = { category: p.category, items: [] };
       packingGroups.push(g);
     }
-    g.items.push({ name: p.name, done: p.done });
+    g.items.push({ id: p.id, name: p.name, done: p.done });
   }
 
   return {
@@ -97,6 +97,7 @@ export function toWorkspace(e: FullEvent) {
     })),
     flow: e.flowBlocks.map((b) => ({
       id: b.order + 1,
+      blockId: b.id,
       start: b.start,
       end: b.end,
       durationMin: minutes(b.end) - minutes(b.start),
@@ -110,6 +111,7 @@ export function toWorkspace(e: FullEvent) {
         .filter((d) => d.kind === "facilitator")
         .map((d) => ({ role: d.roleTitle, stations: d.stationsLabel ?? "", crew: d.crew, duties: d.duties })),
       gear: b.gear,
+      completed: b.completed,
     })),
     crew: e.crewAssignments
       .filter((a) => a.source === "app" && a.stationId === null)

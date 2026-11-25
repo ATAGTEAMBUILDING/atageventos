@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, Pill, Bar, Btn, inputStyle, type Tone } from "@/components/ui";
 import { Icon } from "@/lib/icons";
 import { useToast } from "@/lib/toast";
+import { patchProcurement } from "@/lib/api";
 import { PROCUREMENT_STATUSES, type EventWorkspaceData, type ProcurementItem, type ProcurementStatus, type Urgency } from "@/domain/types";
 
 const uTone: Record<Urgency, Tone> = { HIGH: "crit", MEDIUM: "warn", LOW: "neutral" };
@@ -12,7 +13,10 @@ export function ProcurementTab({ data }: { data: EventWorkspaceData }) {
   const [rows, setRows] = useState<ProcurementItem[]>(data.procurement);
   const [filter, setFilter] = useState<"All" | ProcurementStatus>("All");
 
-  const setStatus = (id: string, v: ProcurementStatus) => setRows((r) => r.map((x) => (x.id === id ? { ...x, status: v } : x)));
+  const setStatus = (id: string, v: ProcurementStatus) => {
+    setRows((r) => r.map((x) => (x.id === id ? { ...x, status: v } : x)));
+    patchProcurement(id, v).catch(() => toast("Couldn't save — check connection", "crit"));
+  };
   const committed = rows.filter((r) => r.status !== "To Order").reduce((s, r) => s + r.cost, 0);
   const remaining = alloc - committed;
   const counts: Record<string, number> = {

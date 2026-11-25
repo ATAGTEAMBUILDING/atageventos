@@ -1,12 +1,18 @@
 import { useState } from "react";
 import { Card, Pill, Bar, SectionHead } from "@/components/ui";
 import { Icon } from "@/lib/icons";
+import { useToast } from "@/lib/toast";
+import { patchPacking } from "@/lib/api";
 import type { EventWorkspaceData, PackingGroup } from "@/domain/types";
 
 export function PackingTab({ data }: { data: EventWorkspaceData }) {
+  const toast = useToast();
   const [groups, setGroups] = useState<PackingGroup[]>(() => data.packing.map((g) => ({ ...g, items: g.items.map((i) => ({ ...i })) })));
-  const toggle = (gi: number, ii: number) =>
+  const toggle = (gi: number, ii: number) => {
+    const item = groups[gi].items[ii];
     setGroups((d) => d.map((g, j) => (j !== gi ? g : { ...g, items: g.items.map((it, k) => (k === ii ? { ...it, done: !it.done } : it)) })));
+    patchPacking(item.id, !item.done).catch(() => toast("Couldn't save — check connection", "crit"));
+  };
 
   const all = groups.flatMap((g) => g.items);
   const done = all.filter((i) => i.done).length;

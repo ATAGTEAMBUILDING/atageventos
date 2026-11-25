@@ -79,6 +79,7 @@ export interface FlowDuty {
 
 export interface FlowBlock {
   id: number;
+  blockId: string; // DB id, for write-back
   start: string;
   end: string;
   durationMin: number;
@@ -88,6 +89,7 @@ export interface FlowBlock {
   producers: FlowDuty[];
   facilitators: FlowDuty[];
   gear: string[];
+  completed: boolean;
 }
 
 export interface CrewMember {
@@ -112,7 +114,7 @@ export interface ProcurementItem {
 
 export interface PackingGroup {
   category: string;
-  items: { name: string; done: boolean }[];
+  items: { id: string; name: string; done: boolean }[];
 }
 
 export interface DeckSlide {

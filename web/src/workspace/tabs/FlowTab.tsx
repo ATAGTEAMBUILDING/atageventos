@@ -2,15 +2,16 @@ import { useState } from "react";
 import { Card, Panel, Pill, Btn, LinkBtn } from "@/components/ui";
 import { Icon } from "@/lib/icons";
 import { useToast } from "@/lib/toast";
+import { patchFlow } from "@/lib/api";
 import { DRIVE_URL } from "@/domain/seed";
 import type { EventWorkspaceData, FlowBlock } from "@/domain/types";
 
-function Block({ b, done, toggle, open, setOpen }: { b: FlowBlock; done: boolean; toggle: (id: number) => void; open: boolean; setOpen: (id: number | null) => void }) {
+function Block({ b, done, toggle, open, setOpen }: { b: FlowBlock; done: boolean; toggle: (id: number, blockId: string) => void; open: boolean; setOpen: (id: number | null) => void }) {
   const toast = useToast();
   return (
     <Card pad={false} className="overflow-hidden">
       <div className="flex items-start gap-3 p-4">
-        <button onClick={() => toggle(b.id)} className="mt-0.5 shrink-0" aria-label="Mark step complete">
+        <button onClick={() => toggle(b.id, b.blockId)} className="mt-0.5 shrink-0" aria-label="Mark step complete">
           <span className="w-6 h-6 rounded-full flex items-center justify-center transition-colors" style={done ? { background: "var(--good)", color: "#fff" } : { border: "2px solid var(--border-2)" }}>
             {done && <Icon name="check" className="w-3.5 h-3.5" stroke={3} />}
           </span>
@@ -118,16 +119,19 @@ function Block({ b, done, toggle, open, setOpen }: { b: FlowBlock; done: boolean
 
 export function FlowTab({ data }: { data: EventWorkspaceData }) {
   const toast = useToast();
-  const [doneSet, setDoneSet] = useState<Set<number>>(new Set());
+  const [doneSet, setDoneSet] = useState<Set<number>>(() => new Set(data.flow.filter((b) => b.completed).map((b) => b.id)));
   const [open, setOpen] = useState<number | null>(1);
   const [phase, setPhase] = useState("All");
   const flow = data.flow;
-  const toggle = (id: number) =>
+  const toggle = (id: number, blockId: string) => {
+    const completed = !doneSet.has(id);
     setDoneSet((s) => {
       const n = new Set(s);
       n.has(id) ? n.delete(id) : n.add(id);
       return n;
     });
+    patchFlow(blockId, completed).catch(() => toast("Couldn't save — check connection", "crit"));
+  };
   const phases = ["All", ...flow.map((b) => b.phase)];
   const list = phase === "All" ? flow : flow.filter((b) => b.phase === phase);
 

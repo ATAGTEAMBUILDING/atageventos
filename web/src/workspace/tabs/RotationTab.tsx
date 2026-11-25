@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, Panel, Btn } from "@/components/ui";
 import { Icon } from "@/lib/icons";
 import { useToast } from "@/lib/toast";
+import { generateRotation } from "@/lib/api";
 import { mmss } from "@/lib/format";
 import type { EventWorkspaceData, RotationPosition } from "@/domain/types";
 
@@ -49,6 +50,7 @@ export function RotationTab({ data }: { data: EventWorkspaceData }) {
   };
   const generate = () => {
     setGrid(null);
+    generateRotation(data.event.id).catch(() => toast("Couldn't save the plan — check connection", "crit"));
     setTimeout(() => {
       setGrid(buildGrid(data));
       toast("Rotation solved — every team clears every challenge, 0 clashes", "good");

@@ -2,18 +2,34 @@ import { useState } from "react";
 import { Card, Pill, Btn, SectionHead, inputStyle } from "@/components/ui";
 import { Icon } from "@/lib/icons";
 import { useToast } from "@/lib/toast";
+import { putStationMapping } from "@/lib/api";
 import { PRODUCERS, FACILITATOR_POOL, type EventWorkspaceData, type Station } from "@/domain/types";
 
 export function MappingTab({ data }: { data: EventWorkspaceData }) {
   const toast = useToast();
   const [stations, setStations] = useState<Station[]>(() => data.stations.map((s) => ({ ...s, facilitators: [...s.facilitators] })));
+  const save = (id: string, producer: string, facs: string[]) =>
+    putStationMapping(id, producer === "—" ? null : producer, facs).catch(() => toast("Couldn't save — check connection", "crit"));
 
-  const setProducer = (i: number, v: string) => setStations((m) => m.map((s, j) => (j === i ? { ...s, producer: v } : s)));
+  const setProducer = (i: number, v: string) => {
+    const s = stations[i];
+    setStations((m) => m.map((x, j) => (j === i ? { ...x, producer: v } : x)));
+    save(s.id, v, s.facilitators);
+  };
   const addFac = (i: number, v: string) => {
     if (!v) return;
-    setStations((m) => m.map((s, j) => (j === i && !s.facilitators.includes(v) ? { ...s, facilitators: [...s.facilitators, v] } : s)));
+    const s = stations[i];
+    if (s.facilitators.includes(v)) return;
+    const facs = [...s.facilitators, v];
+    setStations((m) => m.map((x, j) => (j === i ? { ...x, facilitators: facs } : x)));
+    save(s.id, s.producer, facs);
   };
-  const removeFac = (i: number, v: string) => setStations((m) => m.map((s, j) => (j === i ? { ...s, facilitators: s.facilitators.filter((x) => x !== v) } : s)));
+  const removeFac = (i: number, v: string) => {
+    const s = stations[i];
+    const facs = s.facilitators.filter((x) => x !== v);
+    setStations((m) => m.map((x, j) => (j === i ? { ...x, facilitators: facs } : x)));
+    save(s.id, s.producer, facs);
+  };
   const unstaffed = stations.filter((s) => s.producer === "—").length;
 
   return (
