@@ -12,7 +12,12 @@ const DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN || "myatag.com";
 const REDIRECT = process.env.OAUTH_REDIRECT_URL || "http://localhost:8080/api/auth/google/callback";
 
 export const oauthConfigured = () => !!(process.env.GOOGLE_OAUTH_CLIENT_ID && process.env.GOOGLE_OAUTH_CLIENT_SECRET);
-const devLoginAllowed = () => !oauthConfigured() || process.env.ENABLE_DEV_LOGIN === "1";
+// In production, dev-login is OFF unless explicitly enabled (so a live URL isn't
+// open to anyone picking a role). In local dev it's on whenever OAuth is unset.
+const devLoginAllowed = () =>
+  process.env.NODE_ENV === "production"
+    ? process.env.ENABLE_DEV_LOGIN === "1"
+    : !oauthConfigured() || process.env.ENABLE_DEV_LOGIN === "1";
 
 function oauthClient() {
   return new google.auth.OAuth2(process.env.GOOGLE_OAUTH_CLIENT_ID, process.env.GOOGLE_OAUTH_CLIENT_SECRET, REDIRECT);
