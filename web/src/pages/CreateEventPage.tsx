@@ -1,5 +1,6 @@
 import { useState, Fragment } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
+import { useAuth } from "@/lib/auth";
 import { Card, Btn, Field, inputStyle } from "@/components/ui";
 import { Icon } from "@/lib/icons";
 import { useToast } from "@/lib/toast";
@@ -11,6 +12,7 @@ const STEPS = ["Basics", "Teams", "Programme", "Review"];
 
 export function CreateEventPage() {
   const navigate = useNavigate();
+  const { canManage } = useAuth();
   const toast = useToast();
   const [step, setStep] = useState(0);
   const [f, setF] = useState({
@@ -28,6 +30,8 @@ export function CreateEventPage() {
     toast("Event created — folder scaffolded in Drive", "good");
     navigate(`/events/${ev.id}`);
   }
+
+  if (!canManage) return <Navigate to="/" replace />;
 
   return (
     <div className="fadeup py-6 max-w-3xl mx-auto w-full" style={{ paddingLeft: "max(20px,env(safe-area-inset-left,0px))", paddingRight: "max(20px,env(safe-area-inset-right,0px))" }}>

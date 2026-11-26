@@ -1,8 +1,11 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
+import { requireRole } from "../middleware/auth.js";
 
 export const scoresRouter = Router();
+// Facilitators score on the day, so they can write scores (but not other things).
+const canScore = requireRole("Admin", "Producer", "Facilitator");
 
 const scoreSchema = z.object({
   teamId: z.string(),
@@ -11,7 +14,7 @@ const scoreSchema = z.object({
 });
 
 /** PUT /api/events/:id/scores — upsert one score cell (source of truth = DB). */
-scoresRouter.put("/:id/scores", async (req, res, next) => {
+scoresRouter.put("/:id/scores", canScore, async (req, res, next) => {
   try {
     const { teamId, challengeKey, points } = scoreSchema.parse(req.body);
     const challenge = await prisma.challenge.findFirst({ where: { eventId: req.params.id, key: challengeKey } });
@@ -31,7 +34,7 @@ scoresRouter.put("/:id/scores", async (req, res, next) => {
 const adjSchema = z.object({ bonus: z.number().int().min(0), penalty: z.number().int().min(0) });
 
 /** PUT /api/events/:id/teams/:teamId/adjustments — team bonus / penalty. */
-scoresRouter.put("/:id/teams/:teamId/adjustments", async (req, res, next) => {
+scoresRouter.put("/:id/teams/:teamId/adjustments", canScore, async (req, res, next) => {
   try {
     const { bonus, penalty } = adjSchema.parse(req.body);
     const team = await prisma.team.update({

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { notImplemented } from "../lib/http.js";
 import { generateDeliverable } from "../services/google/generate.js";
+import { requireRole } from "../middleware/auth.js";
 
 export const deliverablesRouter = Router();
 
@@ -10,7 +11,7 @@ export const deliverablesRouter = Router();
  * Copies the template, merges live event data, writes into the event's Drive
  * folder, and records the resulting file id + url on the Deliverable row.
  */
-deliverablesRouter.post("/:id/deliverables/:kind/generate", async (req, res, next) => {
+deliverablesRouter.post("/:id/deliverables/:kind/generate", requireRole("Admin", "Producer"), async (req, res, next) => {
   try {
     const result = await generateDeliverable(req.params.id, req.params.kind);
     res.json(result);

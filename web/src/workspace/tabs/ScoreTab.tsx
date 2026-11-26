@@ -3,6 +3,7 @@ import { Card, Panel, Btn, LinkBtn, inputStyle } from "@/components/ui";
 import { Icon } from "@/lib/icons";
 import { useToast } from "@/lib/toast";
 import { putScore, putAdjustments } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { DRIVE_URL } from "@/domain/seed";
 import type { EventWorkspaceData, TeamScore } from "@/domain/types";
 
@@ -11,6 +12,7 @@ const medal = ["var(--gold)", "var(--faint)", "#B06A2E"];
 export function ScoreTab({ data }: { data: EventWorkspaceData }) {
   const toast = useToast();
   const { teams, challenges } = data;
+  const { canEdit } = useAuth();
   const eventId = data.event.id;
   const [scores, setScores] = useState<Record<string, TeamScore>>(() => Object.fromEntries(data.scores.map((s) => [s.teamId, { ...s, points: { ...s.points } }])));
   const persist = (p: Promise<unknown>) => p.catch(() => toast("Couldn't save — check connection", "crit"));
@@ -105,21 +107,21 @@ export function ScoreTab({ data }: { data: EventWorkspaceData }) {
                     </td>
                     {challenges.map((c) => (
                       <td key={c.key} className="px-2 py-2.5 text-center">
-                        <input type="number" value={s.points[c.key] ?? 0} onChange={(e) => setVal(t.id, c.key, e.target.value, c.max)} className="w-14 text-center rounded-md py-1 text-sm font-mono tnum" style={inputStyle} />
+                        <input type="number" value={s.points[c.key] ?? 0} disabled={!canEdit} onChange={(e) => setVal(t.id, c.key, e.target.value, c.max)} className="w-14 text-center rounded-md py-1 text-sm font-mono tnum disabled:opacity-60" style={inputStyle} />
                       </td>
                     ))}
                     <td className="px-2 py-2.5">
                       <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => step(t.id, "bonus", -5)} className="w-5 h-5 rounded font-bold" style={{ background: "var(--surface-2)", color: "var(--muted)" }}>–</button>
+                        <button onClick={() => step(t.id, "bonus", -5)} disabled={!canEdit} className="w-5 h-5 rounded font-bold disabled:opacity-40" style={{ background: "var(--surface-2)", color: "var(--muted)" }}>–</button>
                         <span className="font-mono tnum w-8 text-center text-good">+{s.bonus}</span>
-                        <button onClick={() => step(t.id, "bonus", 5)} className="w-5 h-5 rounded font-bold" style={{ background: "var(--good-sft)", color: "var(--good)" }}>+</button>
+                        <button onClick={() => step(t.id, "bonus", 5)} disabled={!canEdit} className="w-5 h-5 rounded font-bold disabled:opacity-40" style={{ background: "var(--good-sft)", color: "var(--good)" }}>+</button>
                       </div>
                     </td>
                     <td className="px-2 py-2.5">
                       <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => step(t.id, "penalty", -5)} className="w-5 h-5 rounded font-bold" style={{ background: "var(--surface-2)", color: "var(--muted)" }}>–</button>
+                        <button onClick={() => step(t.id, "penalty", -5)} disabled={!canEdit} className="w-5 h-5 rounded font-bold disabled:opacity-40" style={{ background: "var(--surface-2)", color: "var(--muted)" }}>–</button>
                         <span className="font-mono tnum w-8 text-center text-crit">-{s.penalty}</span>
-                        <button onClick={() => step(t.id, "penalty", 5)} className="w-5 h-5 rounded font-bold" style={{ background: "var(--crit-sft)", color: "var(--crit)" }}>+</button>
+                        <button onClick={() => step(t.id, "penalty", 5)} disabled={!canEdit} className="w-5 h-5 rounded font-bold disabled:opacity-40" style={{ background: "var(--crit-sft)", color: "var(--crit)" }}>+</button>
                       </div>
                     </td>
                     <td className="px-3 py-2.5 text-right font-bold font-mono tnum text-base">{t.total}</td>

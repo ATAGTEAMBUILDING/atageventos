@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, StatusPill, Bar, Btn } from "@/components/ui";
 import { Icon, type IconName } from "@/lib/icons";
 import { listEvents } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { fmtRange } from "@/lib/format";
 import type { EventSummary } from "@/domain/types";
 
@@ -63,6 +64,7 @@ function EventRow({ ev, onOpen }: { ev: EventSummary; onOpen: () => void }) {
 
 export function DashboardPage() {
   const navigate = useNavigate();
+  const { canManage } = useAuth();
   const [events, setEvents] = useState<EventSummary[]>([]);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"Active" | "Complete" | "All">("Active");
@@ -90,9 +92,11 @@ export function DashboardPage() {
             {active.length} active events · {active.reduce((s, e) => s + e.pax, 0)} delegates in the pipeline
           </p>
         </div>
-        <Btn icon="plus" size="lg" onClick={() => navigate("/events/new")}>
-          New event
-        </Btn>
+        {canManage && (
+          <Btn icon="plus" size="lg" onClick={() => navigate("/events/new")}>
+            New event
+          </Btn>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-3">

@@ -8,8 +8,10 @@ import type { EventSummary, EventWorkspaceData } from "@/domain/types";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8080";
 
+export const API_BASE = BASE;
+
 async function getJSON<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`);
+  const res = await fetch(`${BASE}${path}`, { credentials: "include" });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText} for ${path}`);
   return res.json() as Promise<T>;
 }
@@ -19,7 +21,7 @@ export async function listEvents(): Promise<EventSummary[]> {
 }
 
 export async function getEvent(id: string): Promise<EventSummary | undefined> {
-  const res = await fetch(`${BASE}/api/events/${id}`);
+  const res = await fetch(`${BASE}/api/events/${id}`, { credentials: "include" });
   if (res.status === 404) return undefined;
   if (!res.ok) throw new Error(`${res.status} for /api/events/${id}`);
   return res.json();
@@ -39,6 +41,7 @@ export interface CreateEventInput {
 export async function createEvent(input: CreateEventInput): Promise<EventSummary> {
   const res = await fetch(`${BASE}/api/events`, {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
@@ -55,12 +58,52 @@ export async function getWorkspace(id: string): Promise<EventWorkspaceData> {
 async function send(path: string, method: string, body: unknown): Promise<unknown> {
   const res = await fetch(`${BASE}${path}`, {
     method,
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`${res.status} ${method} ${path}`);
   return res.json();
 }
+
+// --- Auth --------------------------------------------------------------------
+
+export type Role = "Admin" | "Producer" | "Facilitator" | "Viewer";
+export interface SessionUser {
+  id: string;
+  email: string;
+  name: string;
+  role: Role;
+}
+export interface AuthState {
+  user: SessionUser | null;
+  oauth: boolean; // real Google OAuth available
+  devLoginAvailable: boolean; // dev-login available
+}
+
+export async function fetchAuthState(): Promise<AuthState> {
+  const res = await fetch(`${BASE}/api/auth/me`, { credentials: "include" });
+  if (res.ok) return { user: (await res.json()) as SessionUser, oauth: false, devLoginAvailable: false };
+  const body = (await res.json().catch(() => ({}))) as { oauth?: boolean; devLogin?: boolean };
+  return { user: null, oauth: !!body.oauth, devLoginAvailable: !!body.devLogin };
+}
+
+export async function devLogin(role: Role): Promise<SessionUser> {
+  const res = await fetch(`${BASE}/api/auth/dev-login`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ role }),
+  });
+  if (!res.ok) throw new Error("dev-login failed");
+  return res.json();
+}
+
+export async function logout(): Promise<void> {
+  await fetch(`${BASE}/api/auth/logout`, { method: "POST", credentials: "include" });
+}
+
+export const googleLoginUrl = `${BASE}/api/auth/google`;
 
 export const putScore = (eventId: string, teamId: string, challengeKey: string, points: number) =>
   send(`/api/events/${eventId}/scores`, "PUT", { teamId, challengeKey, points });

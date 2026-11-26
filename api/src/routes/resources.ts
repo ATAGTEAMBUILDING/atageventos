@@ -2,11 +2,13 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import type { ProcurementStatus } from "@prisma/client";
+import { requireRole } from "../middleware/auth.js";
 
 export const resourcesRouter = Router();
+const canEdit = requireRole("Admin", "Producer");
 
 /** PATCH /api/packing/:itemId — toggle a packing item. */
-resourcesRouter.patch("/packing/:itemId", async (req, res, next) => {
+resourcesRouter.patch("/packing/:itemId", canEdit, async (req, res, next) => {
   try {
     const { done } = z.object({ done: z.boolean() }).parse(req.body);
     const item = await prisma.packingItem.update({ where: { id: req.params.itemId }, data: { done } });
@@ -23,7 +25,7 @@ const webToDbStatus: Record<string, ProcurementStatus> = {
 };
 
 /** PATCH /api/procurement/:itemId — change fulfilment status. */
-resourcesRouter.patch("/procurement/:itemId", async (req, res, next) => {
+resourcesRouter.patch("/procurement/:itemId", canEdit, async (req, res, next) => {
   try {
     const { status } = z.object({ status: z.string() }).parse(req.body);
     const dbStatus = webToDbStatus[status];
@@ -36,7 +38,7 @@ resourcesRouter.patch("/procurement/:itemId", async (req, res, next) => {
 });
 
 /** PATCH /api/flow/:blockId — mark a flow step complete / incomplete. */
-resourcesRouter.patch("/flow/:blockId", async (req, res, next) => {
+resourcesRouter.patch("/flow/:blockId", canEdit, async (req, res, next) => {
   try {
     const { completed } = z.object({ completed: z.boolean() }).parse(req.body);
     const block = await prisma.flowBlock.update({ where: { id: req.params.blockId }, data: { completed } });
@@ -47,7 +49,7 @@ resourcesRouter.patch("/flow/:blockId", async (req, res, next) => {
 });
 
 /** PUT /api/stations/:stationId/mapping — replace producer + facilitators (by name). */
-resourcesRouter.put("/stations/:stationId/mapping", async (req, res, next) => {
+resourcesRouter.put("/stations/:stationId/mapping", canEdit, async (req, res, next) => {
   try {
     const { producer, facilitators } = z
       .object({ producer: z.string().nullable(), facilitators: z.array(z.string()) })

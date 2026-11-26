@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { provisionEventFolder } from "../services/google/drive.js";
 import { toEventSummary, toWorkspace, type FullEvent } from "../lib/serialize.js";
+import { requireRole } from "../middleware/auth.js";
 
 export const eventsRouter = Router();
 
@@ -28,7 +29,7 @@ const createSchema = z.object({
 });
 
 /** POST /api/events — create event + scaffold its Drive folder. */
-eventsRouter.post("/", async (req, res, next) => {
+eventsRouter.post("/", requireRole("Admin", "Producer"), async (req, res, next) => {
   try {
     const input = createSchema.parse(req.body);
     const event = await prisma.event.create({

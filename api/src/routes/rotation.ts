@@ -1,11 +1,12 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
 import { solveRotation } from "../services/rotation.js";
+import { requireRole } from "../middleware/auth.js";
 
 export const rotationRouter = Router();
 
 /** POST /api/events/:id/rotation/generate — solve and persist the rotation plan. */
-rotationRouter.post("/:id/rotation/generate", async (req, res, next) => {
+rotationRouter.post("/:id/rotation/generate", requireRole("Admin", "Producer"), async (req, res, next) => {
   try {
     const eventId = req.params.id;
     const [teams, stations, event] = await Promise.all([

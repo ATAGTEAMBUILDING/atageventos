@@ -1,7 +1,26 @@
 import { Outlet, useNavigate, useLocation, Link } from "react-router-dom";
 import { Icon, type IconName } from "@/lib/icons";
 import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
 import { DRIVE_URL, PARENT_FOLDER } from "@/domain/seed";
+
+function UserMenu() {
+  const { user, logout } = useAuth();
+  if (!user) return null;
+  const initials = user.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+  return (
+    <div className="flex items-center gap-2">
+      <div className="hidden sm:flex flex-col items-end leading-tight">
+        <span className="text-xs font-semibold truncate max-w-[140px]">{user.name}</span>
+        <span className="text-[10px] font-semibold" style={{ color: "var(--accent)" }}>{user.role}</span>
+      </div>
+      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ background: "var(--accent-2)" }}>{initials}</div>
+      <button onClick={logout} className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-surface2 text-muted" aria-label="Sign out" title="Sign out">
+        <Icon name="external" className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
 
 const NAV: { label: string; icon: IconName; to: string }[] = [
   { label: "Dashboard", icon: "grid", to: "/" },
@@ -59,6 +78,7 @@ function Rail() {
 export function AppShell() {
   const navigate = useNavigate();
   const loc = useLocation();
+  const { canManage } = useAuth();
   const onCreate = loc.pathname === "/events/new";
   return (
     <div className="flex min-h-screen">
@@ -80,15 +100,13 @@ export function AppShell() {
             )}
           </div>
           <div className="flex items-center gap-2">
-            {!onCreate && (
+            {!onCreate && canManage && (
               <button onClick={() => navigate("/events/new")} className="hidden sm:inline-flex items-center gap-2 text-xs font-semibold rounded-lg px-2.5 py-1.5 text-white" style={{ background: "var(--accent)" }}>
                 <Icon name="plus" className="w-3.5 h-3.5" />
                 New event
               </button>
             )}
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: "var(--accent-2)" }}>
-              AT
-            </div>
+            <UserMenu />
           </div>
         </header>
         <main className="flex-1">
