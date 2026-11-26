@@ -1,4 +1,5 @@
 import "dotenv/config";
+import path from "node:path";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -31,6 +32,17 @@ app.use("/api/events", deliverablesRouter);
 app.use("/api/events", rotationRouter);
 app.use("/api/crew", crewRouter);
 app.use("/api", resourcesRouter);
+
+// In production, serve the built web app from ./public and let the SPA router
+// handle non-/api routes (single Cloud Run service, same origin).
+if (process.env.NODE_ENV === "production") {
+  const pub = path.resolve(process.cwd(), "public");
+  app.use(express.static(pub));
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api") || req.path === "/health") return next();
+    res.sendFile(path.join(pub, "index.html"));
+  });
+}
 
 const port = Number(process.env.PORT ?? 8080);
 app.listen(port, () => console.log(`eventops-api listening on :${port}`));

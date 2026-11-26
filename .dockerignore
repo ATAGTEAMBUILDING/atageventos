@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+**/.env
+**/.env.*
+.git
+.github
+api/public
+spike
+web/dev-dist
+*.log

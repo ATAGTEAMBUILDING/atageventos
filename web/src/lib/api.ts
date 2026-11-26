@@ -7,7 +7,9 @@
 import type { EventSummary, EventWorkspaceData } from "@/domain/types";
 import { enqueueRequest, flushOutbox } from "@/lib/offline";
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8080";
+// Production serves the web from the API (same origin) → empty base, relative URLs.
+// Local dev sets VITE_API_URL (see web/.env.development) to reach the API on :8080.
+const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
 
 export const API_BASE = BASE;
 

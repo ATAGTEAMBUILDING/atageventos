@@ -11,3 +11,6 @@ api/dist/
 api/.env
 *.log
 .vite/
+
+# built web served by API in prod (populated by Docker build)
+api/public/

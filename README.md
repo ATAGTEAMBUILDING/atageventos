@@ -28,6 +28,7 @@ component calls the network directly.
 | Auth — Google Workspace OAuth + roles (Admin/Producer/Facilitator/Viewer) | Built; dev-login fallback until an OAuth client is set; RBAC enforced on all writes |
 | Google Workspace generation (Drive / Sheets / Slides) | Code written, **spike-verified**; needs Shared Drive + service account + template ids |
 | Offline PWA (day-of) | Built — installable; shell + reads cached; writes queue in IndexedDB and sync on reconnect |
+| Deployment (Cloud Run + Cloud SQL) | Config ready — `Dockerfile` + `deploy/` (one service: API serves the web); runs on `gcloud` |
 
 ## Run full-stack locally
 
@@ -57,6 +58,13 @@ npm run dev                # http://localhost:5173  (set VITE_API_URL if the API
 ```
 
 `npm run build` in either package type-checks and builds for production.
+
+## Deploy
+
+One Cloud Run service runs the API and serves the web app (same origin), backed by
+a small Cloud SQL Postgres; secrets live in Secret Manager; migrations apply on
+start. Full steps in **[`deploy/README.md`](deploy/README.md)**; the repeatable
+step is `./deploy/deploy.sh`.
 
 ## Phase 0 spike result (25 Nov 2026)
 
