@@ -4,6 +4,7 @@ import { Icon, type IconName } from "@/lib/icons";
 import { StatusPill } from "@/components/ui";
 import { useToast } from "@/lib/toast";
 import { getWorkspace } from "@/lib/api";
+import { OfflineBadge } from "@/components/OfflineBadge";
 import { fmtRange } from "@/lib/format";
 import { PARENT_FOLDER } from "@/domain/seed";
 import type { EventWorkspaceData } from "@/domain/types";
@@ -100,6 +101,7 @@ export function WorkspacePage() {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <OfflineBadge />
             <button
               onClick={() => toast(`Synced all deliverables to ${PARENT_FOLDER} / ${ev.name}`, "good")}
               className="hidden sm:inline-flex items-center gap-2 text-sm font-semibold rounded-lg px-3.5 py-2 text-white"

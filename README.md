@@ -27,7 +27,7 @@ component calls the network directly.
 | Database — Prisma schema + migrations + seed (Island Escape dataset) | Built |
 | Auth — Google Workspace OAuth + roles (Admin/Producer/Facilitator/Viewer) | Built; dev-login fallback until an OAuth client is set; RBAC enforced on all writes |
 | Google Workspace generation (Drive / Sheets / Slides) | Code written, **spike-verified**; needs Shared Drive + service account + template ids |
-| Offline PWA (day-of) | Not started |
+| Offline PWA (day-of) | Built — installable; shell + reads cached; writes queue in IndexedDB and sync on reconnect |
 
 ## Run full-stack locally
 

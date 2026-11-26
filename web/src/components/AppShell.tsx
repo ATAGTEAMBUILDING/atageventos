@@ -2,6 +2,7 @@ import { Outlet, useNavigate, useLocation, Link } from "react-router-dom";
 import { Icon, type IconName } from "@/lib/icons";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
+import { OfflineBadge } from "@/components/OfflineBadge";
 import { DRIVE_URL, PARENT_FOLDER } from "@/domain/seed";
 
 function UserMenu() {
@@ -100,6 +101,7 @@ export function AppShell() {
             )}
           </div>
           <div className="flex items-center gap-2">
+            <OfflineBadge />
             {!onCreate && canManage && (
               <button onClick={() => navigate("/events/new")} className="hidden sm:inline-flex items-center gap-2 text-xs font-semibold rounded-lg px-2.5 py-1.5 text-white" style={{ background: "var(--accent)" }}>
                 <Icon name="plus" className="w-3.5 h-3.5" />

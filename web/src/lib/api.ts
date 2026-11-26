@@ -5,6 +5,7 @@
  * changed. Base URL from VITE_API_URL, default http://localhost:8080.
  */
 import type { EventSummary, EventWorkspaceData } from "@/domain/types";
+import { enqueueRequest, flushOutbox } from "@/lib/offline";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8080";
 
@@ -56,13 +57,26 @@ export async function getWorkspace(id: string): Promise<EventWorkspaceData> {
 // --- Write-back (mutations) --------------------------------------------------
 
 async function send(path: string, method: string, body: unknown): Promise<unknown> {
-  const res = await fetch(`${BASE}${path}`, {
-    method,
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`${res.status} ${method} ${path}`);
+  // Offline: queue it and resolve (the UI already updated optimistically).
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    await enqueueRequest(method, path, body);
+    return { queued: true };
+  }
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      method,
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    // Network failure (dropped signal) — queue for replay on reconnect.
+    await enqueueRequest(method, path, body);
+    return { queued: true };
+  }
+  if (!res.ok) throw new Error(`${res.status} ${method} ${path}`); // real error (e.g. 403) — surfaced to caller
+  void flushOutbox(); // drain anything queued earlier
   return res.json();
 }
 
